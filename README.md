@@ -9,5 +9,6 @@ anyone reading to check them out as they go along as well.
 - The incredible *[reference courtesy of BitWise](http://www.6502.org/users/obelisk/index.html)*
 - Nick Morgan's interactive *[6502 Javascript Assembler and Simulator](https://skilldrick.github.io/easy6502/)*
 - Justin Meiners and Ryan Pendleton's *[Write your own virtual machine](https://www.jmeiners.com/lc3-vm/#running-the-vm)*
+- The full *[instruction set](https://www.masswerk.at/6502/6502_instruction_set.html)*
 
 The TODO list is so vast it may need it's own file so maybe later on that.

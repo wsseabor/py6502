@@ -10,9 +10,10 @@ class Memory:
     def __init__(self, size: int = 65536) -> None:
         """
         Memory class for the 6502 processor. Initializes a 'protected' empty list where each index is of uint8 data type
+        Sets a list of 'memory' that extends to max value
 
-        @param size: size of memory, 2^16 or 65536
-        @return: None
+        @Param size: size of memory, 2^16 or 65536
+        @Return: None
 
         """
         self.size = size
@@ -22,8 +23,8 @@ class Memory:
         """
         Reads an address from the memory array
 
-        @param addr: address index to read
-        @return: int (address of memory to be retrieved)
+        @Param addr: address index to read
+        @Return: int (address of memory to be retrieved)
         """
 
         #If not between 0 and self.size, raise value error
@@ -36,9 +37,9 @@ class Memory:
         """
         Writes to a specific memory address
 
-        @param addr, address index to retrieve
-        @param value, value to write at specific memory address
-        @return: None
+        @Param addr: address index to retrieve
+        @Param value: value to write at specific memory address
+        @Peturn: None
         """
 
         #Same as the read check
@@ -73,10 +74,12 @@ class Processor:
             -Zero
             -Carry
 
+        Cycles to keep track of where we are as 6502 is a cycle-accurate processory to rely on precise timing
+
         Initialize processor class boilerplate
 
-        @param memory: Memory to use
-        @return: None
+        @Param memory: Memory to use
+        @Return: None
         """
 
         self.memory = memory
@@ -198,12 +201,69 @@ class Processor:
 
     def clear_negative_flag(self) -> None:
         """
+        Clear Negative Flag
 
+        Sets the negative flag to false
+
+        @Return: None
         
         """
-        pass
+        self.flag_n = False
+        self.cycles += 1
 
-    def lda(self, val: int) -> None:
+    def calculate_effective_address(self, mode: str, op: int) -> int:
+        """
+        Caclulates the effective address of each addressing mode for instructions such as LDA, STA...
+
+        -Absolute (Where the full 16 bit address is provided as an operand, eg. LDA #$42, value $42 is loaded to accumulator)
+        -Zero page (Where address is specified as an 8-bit values, within the first 256 bytes of memory 0x0000 -> 0x00FF)
+        -Absolute X and Y (Address is calculated by adding the value in the the X or Y register to a 16-bit base address)
+        -Zero page X and Y (Address is calculated by adding the value in register X or Y to an 8-bit zero page address)
+        -Indirect X and Y (Address is calculated using indexed indirect or indirect indexed addressing)
+
+        @Param mode: Addressing mode
+        @Param op: operand
+
+        @Return: int
+        """
+
+        if mode == "absolute":
+            return op
+        elif mode == "zero_page":
+            return op & 0xFF
+        elif mode == "absolute_x":
+            return op + self.reg_x
+        elif mode == "absolute_y":
+            return op + self.reg_y
+        elif mode == "zero_page_x":
+            return (op + self.reg_x) & 0xFF
+        elif mode == "zero_page_y":
+            return (op + self.reg_y) & 0xFF
+        else:
+            raise ValueError(f"Unsupported addressing mode: {mode}")
+        
+    def get_cycles_for_mode(self, mode: str) -> int:
+        """
+        To keep the processor cycle-accurate, values for each addressing mode must be accurate
+
+        Store cycles in a dictionary with key(mode) and value(cycles to be added)
+
+        @Param mode: addressing mode
+        @Return: int
+        """
+
+        cycles = {
+            "absolute" : 4,
+            "zero_page" : 3,
+            "absolute_x" : 4,
+            "absolute_y" : 4,
+            "zero_page_x" : 4,
+            "zero_page_y" : 4
+        }
+
+        return cycles.get(mode, 0)
+
+    def ins_lda_immediate(self, val: int) -> None:
         """
         LDA - Load data accumulator (with memory)
 
@@ -232,5 +292,28 @@ class Processor:
 
         #Cycle increment
         self.cycles += 1
+
+    def ins_sta(self, mode: str, op: int) -> None:
+        """
+        STA - Store contents of accumulator to memory
+
+        Affects none of the flags in the processor status register and does not affect accumulator
+
+        Multiple addressing modes:
+            -Absolute (Full 16-bit address is provided as operand)
+            -Zero page (Address is specified as an 8-bit value, and refers to the first 256 bytes of memory, addresses 0x0000 to 0x00FF)
+            -Absolute X, Y (Address is calculated by adding the value of X or Y register to a 16-bit address)
+            -Zero page X, Y (Address is calculated by adding the value or X or Y register to an 8-bit zero pages address)
+            -Indirect X, Y (Address is calculated using indexed indirec tof indirect indexed addressing)
+
+        @Param mode: addressing mode
+        @Param op: operand
+        @Return: None
+        """
+        
+        effective_addr = self.calculate_effective_address(mode, op)
+        self.memory.write(effective_addr, self.reg_a)
+        self.cycles += self.get_cycles_for_mode(mode)
+
 
 
