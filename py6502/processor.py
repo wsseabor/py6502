@@ -1,4 +1,4 @@
-import memory
+from memory import Memory
 
 """
 6502 processor emulator
@@ -9,7 +9,7 @@ Hopefully it will read clearly and helpfully
 """
 
 class Processor:
-    def __init__(self, memory: memory) -> None:
+    def __init__(self, memory: Memory) -> None:
         """
         Processor class for the 6502. Boilerplate initializes the memory (from the previous memory class)
         and defines all registers and status flags. Also includes all instruction from the 6502 instruction set.
@@ -48,13 +48,13 @@ class Processor:
         self.cycles = 0
 
         #Status flags
-        self.flag_n = True #Negative flag
-        self.flag_z = True #Zero flag
+        self.flag_n = False #Negative flag
+        self.flag_z = False #Zero flag
         self.flag_i = True #Interrupt disable
-        self.flag_d = True #Decimal flag
+        self.flag_d = False #Decimal flag
         self.flag_b = True #Break flag
-        self.flag_v = True #Overflow flag
-        self.flag_c = True #Carry flag
+        self.flag_v = False #Overflow flag
+        self.flag_c = False #Carry flag
 
     def reset(self) -> None:
         """
@@ -106,12 +106,12 @@ class Processor:
     
     def push(self, data: int) -> None:
         """
-        Push data onto stack
+        Push data onto stack and don't bypass memory safety checks ok
 
         @Return: None
         """
 
-        self.memory[self.stack_pointer] = data
+        self.memory.write(self.stack_pointer, data)
         self.stack_pointer -= 1
         self.cycles +=1
 
@@ -126,24 +126,7 @@ class Processor:
         self.cycles +=1
         return self.memory[self.stack_pointer - 1]
 
-    def clear_nop_flag(self) -> None:
-        """
-        NOP - No operation
-
-        A special instruction to signify no operation performed
-        Rarely used in the instruction set
-        NOP instruction represented by opcode 0xEA
-
-        Processor fetches NOP opcode from memory, deceodes and recognizes it as NOP, increments program counter
-        to point to next instruction, consumes a small number of cycles (typically 2 in the 6502), and no
-        registers or flags are modified
-
-        @Return: None
-        """
-
-        self.cycles += 2
-
-    def clear_carry_flag(self) -> None:
+    def ins_clc(self) -> None:
         """
         CLC - Clear carry flag
 
@@ -153,19 +136,78 @@ class Processor:
         """
 
         self.flag_c = False
-        self.cycles += 1
+        self.cycles += 2
 
-    def clear_negative_flag(self) -> None:
+    def ins_cld(self) -> None:
         """
-        Clear Negative Flag
+        CLD - Clear decimal mode
 
-        Sets the negative flag to false
+        Sets decimal flag to false
 
         @Return: None
-        
         """
-        self.flag_n = False
-        self.cycles += 1
+        self.flag_d = False
+        self.cycles += 2
+
+    def ins_cli(self) -> None:
+        """
+        CLI - Clear interrupt disable bit
+
+        Set interrupt flag to false
+
+        @Return: None
+        """
+
+        self.flag_i = False
+        self.cycles += 2
+
+    def ins_clv(self) -> None:
+        """
+        CLV - Clear overflow flag
+
+        Set overflow flag to false
+
+        @Return: None
+        """
+
+        self.flag_v = False
+        self.cycles += 2
+
+    def ins_sec(self) -> None:
+        """
+        SEC - Set carry flag
+
+        Set carry flag to true
+
+        @Return: None
+        """
+
+        self.flag_c = True
+        self.cycles += 2
+
+    def ins_sed(self) -> None:
+        """
+        SED - Set decimal flag
+
+        Set decimal flag to true
+
+        @Return: None
+        """
+
+        self.flag_d = True
+        self.cycles += 2
+
+    def ins_sei(self) -> None:
+        """
+        SEI - Set interrupt disable flag
+
+        Set interrupt disable to true
+
+        @Return: None
+        """
+
+        self.flag_i = True
+        self.cylces += 2
 
     def calculate_effective_address(self, mode: str, op: int) -> int:
         """
@@ -218,20 +260,43 @@ class Processor:
         }
 
         return cycles.get(mode, 0)
-
-    def ins_lda_immediate(self, val: int) -> None:
+    
+    def ins_nop(self) -> None:
         """
-        LDA - Load data accumulator (with memory)
+        NOP - No operation
 
-        When instruction LDA is executed, data is transferred from memory to the accumulator and store therein.
+        A special instruction to signify no operation performed
+        Rarely used in the instruction set
+        NOP instruction represented by opcode 0xEA
+
+        Processor fetches NOP opcode from memory, deceodes and recognizes it as NOP, increments program counter
+        to point to next instruction, consumes a small number of cycles (typically 2 in the 6502), and no
+        registers or flags are modified
+
+        @Return: None
+        """
+
+        self.cycles += 2
+
+    def ins_lda(self, mode: str, op: int, val: int) -> None:
+        """
+        LDA - Load data accumulator from memory
+
+        When instruction LDA is executed, data is transferred from memory to the accumulator and stored therein.
 
         LDA affects the contents of the accumulator, does not affect the carry or overflow flags; sets the zero flag
         if the accumulator is zero as a result of LDA, otherwise resets the zero flag; set the negative flag if
         bit 7 of the accumulator is 1, otherwise resets the negative flag.
 
+        @Param mode: addressing mode to be used
+        @Param op: operand
         @Param val: value to be loaded to accumulator
         @Return: None
         """
+
+        """
+
+        *** OLD - immediate only ***
 
         #Value of accumulator register is stored
         self.reg_a = val
@@ -248,6 +313,17 @@ class Processor:
 
         #Cycle increment
         self.cycles += 1
+        
+        """
+
+        effective_addr = self.calculate_effective_address(mode, op)
+        self.reg_a = self.memory.read(effective_addr)
+
+        if (self.reg_a & 0x80):
+            self.flag_n = True
+        if (self.reg_a == 0):
+            self.flag_z = True
+        self.cycles += self.get_cycles_for_mode(mode)
 
     def ins_sta(self, mode: str, op: int) -> None:
         """
@@ -270,3 +346,75 @@ class Processor:
         effective_addr = self.calculate_effective_address(mode, op)
         self.memory.write(effective_addr, self.reg_a)
         self.cycles += self.get_cycles_for_mode(mode)
+
+    def ins_tax(self) -> None:
+        """
+        TAX - Transfer accumulator to index x, does not disturb the contents of accumulator
+        Implied addressing only
+
+        Only affects the index register x, does not affect carry or overflow flags
+        Negative flag is set if bit 7 is 1, otherwise is reset.
+        Zero flag is set if the contents of register x is as a result of the operation, otherwise reset
+
+        @Return: None
+        """
+
+        self.reg_x = self.reg_a
+        if (self.reg_x & 0x0):
+            self.flag_z = True
+        if(self.reg_x & 0x80):
+            self.flag_n = True
+        self.cycles += 2
+
+    def ins_txa(self) -> None:
+        """
+        TXA - Transfer index x to accumulator without disturbing the contents of the x register
+
+        Does not affect any register other than accumulator and does not affect carry or overflow flag
+
+        If result has bit 7 on, negative flag is set, otherwise reset.
+        If the result value in the accumulator is zero, then zero flag is set, otherwise reset. 
+
+        Implied addressing  
+
+        @Return: None
+        """
+
+        self.reg_a = self.reg_x
+        if (self.reg_a & 0x0):
+            self.flag_z = True
+        if (self.reg_a & 0x80):
+            self.flag_n = True
+        self.cycles += 2
+
+    def ins_tay(self) -> None:
+        """
+        TAY - Transfer accumulator to index y
+
+        See ins_tax above
+
+        @Return: None
+        """
+
+        self.reg_y = self.reg_a
+        if (self.reg_y & 0x0):
+            self.flag_z = True
+        if(self.reg_y & 0x80):
+            self.flag_n = True
+        self.cycles += 2
+
+    def ins_tya(self) -> None:
+        """
+        TYA - transfer index y to accumulator
+
+        See ins_txa above
+
+        @Return: None
+        """
+
+        self.reg_a = self.reg_y
+        if (self.reg_a & 0x0):
+            self.flag_z = True
+        if (self.reg_a & 0x80):
+            self.flag_n = True
+        self.cycles += 2

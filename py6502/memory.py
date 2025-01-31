@@ -1,5 +1,3 @@
-
-
 class Memory:
     def __init__(self, size: int = 65536) -> None:
         """
