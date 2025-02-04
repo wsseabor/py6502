@@ -360,7 +360,7 @@ class Processor:
         """
 
         self.reg_x = self.reg_a
-        if (self.reg_x & 0x0):
+        if (self.reg_x == 0):
             self.flag_z = True
         if(self.reg_x & 0x80):
             self.flag_n = True
@@ -381,7 +381,7 @@ class Processor:
         """
 
         self.reg_a = self.reg_x
-        if (self.reg_a & 0x0):
+        if (self.reg_a == 0):
             self.flag_z = True
         if (self.reg_a & 0x80):
             self.flag_n = True
@@ -397,7 +397,7 @@ class Processor:
         """
 
         self.reg_y = self.reg_a
-        if (self.reg_y & 0x0):
+        if (self.reg_y == 0):
             self.flag_z = True
         if(self.reg_y & 0x80):
             self.flag_n = True
@@ -413,8 +413,32 @@ class Processor:
         """
 
         self.reg_a = self.reg_y
-        if (self.reg_a & 0x0):
+        if (self.reg_a == 0):
             self.flag_z = True
         if (self.reg_a & 0x80):
             self.flag_n = True
+        self.cycles += 2
+
+    def ins_tsx(self) -> None:
+        """
+        TSX - transfer stack pointer to index x
+
+        Transfers value in stack pointer to index x
+        Does not affect carry or overflow flags
+
+        Sets negative flag if bit 7 is on in index x as a result of instruction, otherwise reset
+        Sets zero flag is index x is zero as a result of instruction, otherwise reset
+
+        TSX changes the value of index x, making it equal to the content of the SP
+
+        @Return: None
+        """
+
+        self.reg_x = self.stack_pointer
+
+        if (self.reg_x == 0):
+            self.flag_z = True
+        if (self.reg_x & 0x80):
+            self.flag_n = True
+
         self.cycles += 2
