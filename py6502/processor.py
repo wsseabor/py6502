@@ -126,6 +126,75 @@ class Processor:
         self.cycles +=1
         return self.memory[self.stack_pointer - 1]
 
+    def calculate_effective_address(self, mode: str, op: int) -> int:
+        """
+        Caclulates the effective address of each addressing mode for instructions such as LDA, STA...
+
+        -Absolute (Where the full 16 bit address is provided as an operand, eg. LDA #$42, value $42 is loaded to accumulator)
+        -Zero page (Where address is specified as an 8-bit values, within the first 256 bytes of memory 0x0000 -> 0x00FF)
+        -Absolute X and Y (Address is calculated by adding the value in the the X or Y register to a 16-bit base address)
+        -Zero page X and Y (Address is calculated by adding the value in register X or Y to an 8-bit zero page address)
+        -Indirect X and Y (Address is calculated using indexed indirect or indirect indexed addressing)
+
+        @Param mode: Addressing mode
+        @Param op: operand
+
+        @Return: int
+        """
+
+        if mode == "absolute":
+            return op
+        elif mode == "zero_page":
+            return op & 0xFF
+        elif mode == "absolute_x":
+            return op + self.reg_x
+        elif mode == "absolute_y":
+            return op + self.reg_y
+        elif mode == "zero_page_x":
+            return (op + self.reg_x) & 0xFF
+        elif mode == "zero_page_y":
+            return (op + self.reg_y) & 0xFF
+        else:
+            raise ValueError(f"Unsupported addressing mode: {mode}")
+        
+    def get_cycles_for_mode(self, mode: str) -> int:
+        """
+        To keep the processor cycle-accurate, values for each addressing mode must be accurate
+
+        Store cycles in a dictionary with key(mode) and value(cycles to be added)
+
+        @Param mode: addressing mode
+        @Return: int
+        """
+
+        cycles = {
+            "absolute" : 4,
+            "zero_page" : 3,
+            "absolute_x" : 4,
+            "absolute_y" : 4,
+            "zero_page_x" : 4,
+            "zero_page_y" : 4
+        }
+
+        return cycles.get(mode, 0)
+    
+    def ins_nop(self) -> None:
+        """
+        NOP - No operation
+
+        A special instruction to signify no operation performed
+        Rarely used in the instruction set
+        NOP instruction represented by opcode 0xEA
+
+        Processor fetches NOP opcode from memory, deceodes and recognizes it as NOP, increments program counter
+        to point to next instruction, consumes a small number of cycles (typically 2 in the 6502), and no
+        registers or flags are modified
+
+        @Return: None
+        """
+
+        self.cycles += 2
+
     def ins_clc(self) -> None:
         """
         CLC - Clear carry flag
@@ -208,75 +277,6 @@ class Processor:
 
         self.flag_i = True
         self.cylces += 2
-
-    def calculate_effective_address(self, mode: str, op: int) -> int:
-        """
-        Caclulates the effective address of each addressing mode for instructions such as LDA, STA...
-
-        -Absolute (Where the full 16 bit address is provided as an operand, eg. LDA #$42, value $42 is loaded to accumulator)
-        -Zero page (Where address is specified as an 8-bit values, within the first 256 bytes of memory 0x0000 -> 0x00FF)
-        -Absolute X and Y (Address is calculated by adding the value in the the X or Y register to a 16-bit base address)
-        -Zero page X and Y (Address is calculated by adding the value in register X or Y to an 8-bit zero page address)
-        -Indirect X and Y (Address is calculated using indexed indirect or indirect indexed addressing)
-
-        @Param mode: Addressing mode
-        @Param op: operand
-
-        @Return: int
-        """
-
-        if mode == "absolute":
-            return op
-        elif mode == "zero_page":
-            return op & 0xFF
-        elif mode == "absolute_x":
-            return op + self.reg_x
-        elif mode == "absolute_y":
-            return op + self.reg_y
-        elif mode == "zero_page_x":
-            return (op + self.reg_x) & 0xFF
-        elif mode == "zero_page_y":
-            return (op + self.reg_y) & 0xFF
-        else:
-            raise ValueError(f"Unsupported addressing mode: {mode}")
-        
-    def get_cycles_for_mode(self, mode: str) -> int:
-        """
-        To keep the processor cycle-accurate, values for each addressing mode must be accurate
-
-        Store cycles in a dictionary with key(mode) and value(cycles to be added)
-
-        @Param mode: addressing mode
-        @Return: int
-        """
-
-        cycles = {
-            "absolute" : 4,
-            "zero_page" : 3,
-            "absolute_x" : 4,
-            "absolute_y" : 4,
-            "zero_page_x" : 4,
-            "zero_page_y" : 4
-        }
-
-        return cycles.get(mode, 0)
-    
-    def ins_nop(self) -> None:
-        """
-        NOP - No operation
-
-        A special instruction to signify no operation performed
-        Rarely used in the instruction set
-        NOP instruction represented by opcode 0xEA
-
-        Processor fetches NOP opcode from memory, deceodes and recognizes it as NOP, increments program counter
-        to point to next instruction, consumes a small number of cycles (typically 2 in the 6502), and no
-        registers or flags are modified
-
-        @Return: None
-        """
-
-        self.cycles += 2
 
     def ins_lda(self, mode: str, op: int, val: int) -> None:
         """
@@ -441,4 +441,18 @@ class Processor:
         if (self.reg_x & 0x80):
             self.flag_n = True
 
+        self.cycles += 2
+
+    def ins_txs(self) -> None:
+        """
+        TXS - transfer index x to stack pointer
+
+        TXS only changes the stack pointer, making it equal to the content of index register x
+
+        Affects no flags
+
+        @Return: None
+        """
+
+        self.stack_pointer = self.reg_x
         self.cycles += 2
