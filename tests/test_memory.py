@@ -1,8 +1,50 @@
+import unittest
 from py6502 import memory
 
-def test(size: int) -> None:
-    mem = memory.Memory(size)
-    assert len(mem._mem) == size
+"""
+Homegrown test suite just like mother used to make
+"""
 
-test(0)
+class MemTest(unittest.TestCase):
+    def setUp(self):
 
+        #Init memory before each test, setUp is unittest's own method
+        self.mem = memory.Memory()
+
+    def test_init_memory_size(self) -> None:
+        """
+        Test memory initalization
+    
+        @Return: None
+        """
+        self.size = 65535
+        self.size_hex = 0xFFFF
+        
+        print("\n --- Testing memory initalization ---")
+        self.assertEqual(self.mem.size, self.size)
+        self.assertEqual(self.mem.size, self.size_hex)
+
+    def test_read_word(self) -> None:
+        """
+        Test memory method to read words
+        Read byte also tested by way of word read
+
+        @Return: None
+        """
+        print("\n --- Testing read_word ---")
+
+        #Test case one
+        print("\nTest case One: Read word")
+        self.mem.write(0x0000, 0x34)
+        self.mem.write(0x0001, 0x12)
+
+        print(f"Wrote bytes: ${self.mem.read_byte(0x0000):02X} (low) ${self.mem.read_byte(0x0001):02X} (high)")
+        res = self.mem.read_word(0x0000)
+        print(f"Read word: ${res:04X}")
+        print(f"Expected: $1234")
+        self.assertEqual(res, 0x1234)
+
+
+
+if __name__ == "__main__":
+    unittest.main(verbosity=2)
