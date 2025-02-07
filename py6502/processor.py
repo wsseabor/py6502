@@ -276,7 +276,7 @@ class Processor:
         """
 
         self.flag_i = True
-        self.cylces += 2
+        self.cycles += 2
 
     def ins_lda(self, mode: str, op: int, val: int) -> None:
         """
@@ -356,6 +356,8 @@ class Processor:
         Negative flag is set if bit 7 is 1, otherwise is reset.
         Zero flag is set if the contents of register x is as a result of the operation, otherwise reset
 
+        Implied addressing
+
         @Return: None
         """
 
@@ -431,6 +433,8 @@ class Processor:
 
         TSX changes the value of index x, making it equal to the content of the SP
 
+        Implied addressing
+
         @Return: None
         """
 
@@ -451,8 +455,102 @@ class Processor:
 
         Affects no flags
 
+        Implied addressing
+
         @Return: None
         """
 
         self.stack_pointer = self.reg_x
         self.cycles += 2
+
+    def ins_dex(self) -> None:
+        """
+        DEX - Decrement index register x by one
+
+        Decrements the current value of index register x by one and stores that result back in x
+
+        Does not affect carry or overflow flags
+
+        Sets the negative flag if the resulting decrement has bit 7 on, otherwise reset
+        Sets the zero flags if the resulting decrement is zero, otherwise reset
+
+        @Return: None
+        """
+
+        self.reg_x -= 1
+
+        if (self.reg_x == 0):
+            self.flag_z = True
+        if (self.reg_x & 0x80):
+            self.flag_n = True
+
+        self.cycles += 2
+
+    def ins_dey(self) -> None:
+        """
+        DEY - Decrement index register Y by one
+
+        Basically the same as above but for index y register
+
+        @Return: None
+        """
+
+        self.reg_y -= 1
+
+        if (self.reg_y == 0):
+            self.flag_z = True
+        if (self.reg_y & 0x80):
+            self.flag_n = True
+        
+        self.cycles += 2
+
+    def ins_inx(self) -> None:
+        """
+        INX - Increment index x register by one
+
+        Increments the current value in index register x by one and stores that value therein
+
+        Does not affect carry or overflow flags
+
+        Sets negative flag if resulting increment is negative, otherwise reset
+        Sets zero flag if resulting increment is zero, otherwise reset
+
+        @Return: None
+        """
+
+        self.reg_x += 1
+
+        if (self.reg_x == 0):
+            self.flag_z = True
+        if (self.reg_x & 0x80):
+            self.flag_n = True
+
+        self.cycles += 2
+
+    def ins_iny(self) -> None:
+        """
+        INY - Increment index register y by one
+
+        Same as above
+
+        @Return: None
+        """
+
+        self.reg_y += 1
+
+        if (self.reg_y == 0):
+            self.flag_z = True
+        if (self.reg_y & 0x80):
+            self.flag_n = True
+
+        self.cycles += 2
+
+    def ins_dec(self, mode: str, op: str) -> None:
+        """
+        DEC - Decrement memory by one
+
+        Subtracts one in two's complement from the contents of the addressed memory location
+
+        Multiple addressing modes:
+            -Absolute (DEC $nnnn, )
+        """
