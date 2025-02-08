@@ -38,7 +38,7 @@ class Memory:
 
         low_byte = self.read_byte(addr)
         high_byte = self.read_byte(addr + 1)
-        return (high_byte >> 8) | low_byte
+        return (high_byte << 8) | low_byte
         
     def write(self, addr: int, value: int) -> None:
         """
