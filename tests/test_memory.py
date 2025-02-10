@@ -14,12 +14,12 @@ class MemTest(unittest.TestCase):
     def test_init_memory_size(self) -> None:
         """
         Test memory initalization
-    
+
         @Return: None
         """
 
         #Test case one
-        print(f"Test case one: Default memory init")
+        print(f"Test case 1-1: Default memory init")
         self.size = 65535
         self.size_hex = hex(self.size)
         
@@ -36,7 +36,7 @@ class MemTest(unittest.TestCase):
         """
 
         #Test case one
-        print("\nTest case One: Read word")
+        print("\nTest case 2-1: Read word")
         self.mem.write(0x0000, 0x34)
         self.mem.write(0x0001, 0x12)
 
@@ -47,7 +47,7 @@ class MemTest(unittest.TestCase):
         self.assertEqual(res, 0x1234)
 
         #Test case two
-        print("\nTest case two: Read word at end of page")
+        print("\nTest case 2-2: Read word at end of page")
         self.mem.write(0x00FF, 0x34)
         self.mem.write(0x0100, 0x12)
         
@@ -58,7 +58,7 @@ class MemTest(unittest.TestCase):
         self.assertEqual(res, 0x1234)
 
         #Test case three 
-        print("\nTest case three: Read / write zero value")
+        print("\nTest case 2-3: Read / write zero value")
         self.mem.write(0x0400, 0x00)
         self.mem.write(0x0401, 0x00)
         print(f"Wrote bytes: ${self.mem.read_byte(0x0400):02X} (low) ${self.mem.read_byte(0x0401):02X} (high)")
@@ -68,7 +68,7 @@ class MemTest(unittest.TestCase):
         self.assertEqual(res, 0x00)
 
         #Test case four
-        print(f"Test case four: Read / write maximum value")
+        print(f"Test case 2-4: Read / write maximum value")
         self.mem.write(0x0500, 0xFF)
         self.mem.write(0x0501, 0xFF)
         print(f"Wrote bytes: ${self.mem.read_byte(0x0500):02X} (low) ${self.mem.read_byte(0x0501):02X} (high)")
