@@ -1,4 +1,4 @@
-from memory import Memory
+from py6502.memory import Memory
 
 """
 6502 processor emulator
@@ -131,7 +131,7 @@ class Processor:
         Caclulates the effective address of each addressing mode for instructions such as LDA, STA...
 
         -Absolute (Where the full 16 bit address is provided as an operand, eg. LDA #$42, value $42 is loaded to accumulator)
-        -Zero page (Where address is specified as an 8-bit values, within the first 256 bytes of memory 0x0000 -> 0x00FF)
+        -Zero page (Where address is specified as an 8-bit values, within the first 256 bytes of memory 0x00 -> 0xFF, assumed zero high address byte)
         -Absolute X and Y (Address is calculated by adding the value in the the X or Y register to a 16-bit base address)
         -Zero page X and Y (Address is calculated by adding the value in register X or Y to an 8-bit zero page address)
         -Indirect X and Y (Address is calculated using indexed indirect or indirect indexed addressing)
