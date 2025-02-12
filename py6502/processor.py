@@ -1,4 +1,5 @@
 from py6502.memory import Memory
+from py6502.opcode_lookup import OPCODES
 
 """
 6502 processor emulator
@@ -56,6 +57,9 @@ class Processor:
         self.flag_v = False #Overflow flag
         self.flag_c = False #Carry flag
 
+        #Opcode lookups
+        self.opcodes = OPCODES
+
     def reset(self) -> None:
         """
         Reset processor to initial state
@@ -74,35 +78,28 @@ class Processor:
         self.flag_d = False
         self.flag_b = True
 
-    def read_reg_a(self) -> int:
+    def get_processor_status(self) -> dict:
         """
-        Read status of the A register
-
-        @Return: int
+        Debug function to see the status of the processor
         """
 
-        self.cycles += 1
-        return self.reg_a
-    
-    def read_reg_x(self) -> int:
-        """
-        Read status of the X register
+        state = {
+            "cycles" : self.cycles,
+            "reg_a" : self.reg_a,
+            "reg_x" : self.reg_x,
+            "reg_y" : self.reg_y,
+            "pc" : self.program_counter,
+            "sp" : self.stack_pointer,
+            "flag_neg" : self.flag_n,
+            "flag_zero" : self.flag_z,
+            "flag_intrpt" : self.flag_i,
+            "flag_dec" : self.flag_d,
+            "flag_brk" : self.flag_b,
+            "flag_over" : self.flag_v,
+            "flag_carry" : self.flag_c
+        }
 
-        @Return: int
-        """
-
-        self.cycles += 1
-        return self.reg_x
-    
-    def read_reg_y(self) -> int:
-        """
-        Read status of the Y register
-
-        @Return: int
-        """
-
-        self.cycles += 1
-        return self.reg_y
+        return state
     
     def push(self, data: int) -> None:
         """
@@ -156,27 +153,6 @@ class Processor:
             return (op + self.reg_y) & 0xFF
         else:
             raise ValueError(f"Unsupported addressing mode: {mode}")
-        
-    def get_cycles_for_mode(self, mode: str) -> int:
-        """
-        To keep the processor cycle-accurate, values for each addressing mode must be accurate
-
-        Store cycles in a dictionary with key(mode) and value(cycles to be added)
-
-        @Param mode: addressing mode
-        @Return: int
-        """
-
-        cycles = {
-            "absolute" : 4,
-            "zero_page" : 3,
-            "absolute_x" : 4,
-            "absolute_y" : 4,
-            "zero_page_x" : 4,
-            "zero_page_y" : 4
-        }
-
-        return cycles.get(mode, 0)
     
     def ins_nop(self) -> None:
         """
@@ -192,8 +168,9 @@ class Processor:
 
         @Return: None
         """
+        op = self.opcodes.get(0xEA)
+        self.cycles += op.get("cycles")
 
-        self.cycles += 2
 
     def ins_clc(self) -> None:
         """
@@ -205,7 +182,7 @@ class Processor:
         """
 
         self.flag_c = False
-        self.cycles += 2
+        self.cycles += self.opcodes.get()
 
     def ins_cld(self) -> None:
         """
@@ -216,7 +193,6 @@ class Processor:
         @Return: None
         """
         self.flag_d = False
-        self.cycles += 2
 
     def ins_cli(self) -> None:
         """
@@ -228,7 +204,6 @@ class Processor:
         """
 
         self.flag_i = False
-        self.cycles += 2
 
     def ins_clv(self) -> None:
         """
@@ -240,7 +215,6 @@ class Processor:
         """
 
         self.flag_v = False
-        self.cycles += 2
 
     def ins_sec(self) -> None:
         """
@@ -252,7 +226,6 @@ class Processor:
         """
 
         self.flag_c = True
-        self.cycles += 2
 
     def ins_sed(self) -> None:
         """
@@ -264,7 +237,6 @@ class Processor:
         """
 
         self.flag_d = True
-        self.cycles += 2
 
     def ins_sei(self) -> None:
         """
@@ -276,7 +248,6 @@ class Processor:
         """
 
         self.flag_i = True
-        self.cycles += 2
 
     def ins_lda(self, mode: str, op: int, val: int) -> None:
         """
@@ -317,7 +288,7 @@ class Processor:
         """
 
         effective_addr = self.calculate_effective_address(mode, op)
-        self.reg_a = self.memory.read(effective_addr)
+        self.reg_a = self.memory.read_byte(effective_addr)
 
         if (self.reg_a & 0x80):
             self.flag_n = True
@@ -554,3 +525,72 @@ class Processor:
         Multiple addressing modes:
             -Absolute (DEC $nnnn, )
         """
+
+
+
+
+###### OLD ######
+
+#Just a placeholder section for keeping code artifacts
+
+"""
+def read_reg_a(self) -> int:
+        
+        Read status of the A register
+
+        @Return: int
+        
+
+        self.cycles += 1
+        return self.reg_a
+    
+def read_reg_x(self) -> int:
+    
+    Read status of the X register
+
+    @Return: int
+    
+
+    self.cycles += 1
+    return self.reg_x
+    
+def read_reg_y(self) -> int:
+    
+    Read status of the Y register
+
+    @Return: int
+    
+
+    self.cycles += 1
+    return self.reg_y
+    
+def get_cycles_for_mode(self, mode: str) -> int:
+        
+        To keep the processor cycle-accurate, values for each addressing mode must be accurate
+
+        Store cycles in a dictionary with key(mode) and value(cycles to be added)
+
+        @Param mode: addressing mode
+        @Return: int
+        
+
+        cycles = {
+            "absolute" : 4,
+            "zero_page" : 3,
+            "absolute_x" : 4,
+            "absolute_y" : 4,
+            "zero_page_x" : 4,
+            "zero_page_y" : 4
+        }
+
+        return cycles.get(mode, 0)
+
+"""
+
+m = Memory()
+p = Processor(m)
+
+p.ins_nop()
+p.ins_nop()
+state = p.get_processor_status()
+print(state)
